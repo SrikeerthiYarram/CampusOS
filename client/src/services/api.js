@@ -1,7 +1,25 @@
-import axios from 'axios';
+﻿import axios from 'axios';
+
+// Dynamically determine the base URL so it works seamlessly in localhost AND live deployment
+const getBaseURL = () => {
+  // If explicitly configured via Vite env
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // When running on live deployment (Vercel, custom domain, etc.)
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return 'https://uni-sync.onrender.com/api';
+  }
+  // Local development default (relies on Vite dev proxy or local backend)
+  return '/api';
+};
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -24,10 +42,10 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token expired or invalid
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-        // localStorage.removeItem('campusos_token');
-        // window.location.href = '/login';
+      const publicPaths = ['/login', '/register', '/'];
+      if (typeof window !== 'undefined' && !publicPaths.includes(window.location.pathname)) {
+        localStorage.removeItem('campusos_token');
+        localStorage.removeItem('campusos_user');
       }
     }
     return Promise.reject(error);

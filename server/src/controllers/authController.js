@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+﻿import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { getDBStatus } from '../config/db.js';
@@ -9,7 +9,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const generateToken = (user) => {
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id ? user._id.toString() : user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -23,6 +23,7 @@ const generateToken = (user) => {
 // Demo user fallbacks when DB is offline
 const DEMO_STUDENT = {
   _id: '507f1f77bcf86cd799439011',
+  id: '507f1f77bcf86cd799439011',
   name: 'Alex Chen',
   email: 'alex@campusos.edu',
   role: 'student',
@@ -37,6 +38,7 @@ const DEMO_STUDENT = {
 
 const DEMO_ADMIN = {
   _id: '507f1f77bcf86cd799439012',
+  id: '507f1f77bcf86cd799439012',
   name: 'Dr. Sarah Connor',
   email: 'admin@campusos.edu',
   role: 'admin',
@@ -80,6 +82,7 @@ export const register = async (req, res) => {
         message: 'Registration successful! Welcome to CampusOS.',
         token,
         user: {
+          _id: user._id,
           id: user._id,
           name: user.name,
           email: user.email,
@@ -87,22 +90,27 @@ export const register = async (req, res) => {
           studentId: user.studentId,
           department: user.department,
           year: user.year,
+          semester: user.semester,
           cgpa: user.cgpa,
           avatar: user.avatar,
+          bio: user.bio,
         },
       });
     } else {
       // Demo mode registration
       const newUser = {
         _id: 'demo-' + Date.now(),
+        id: 'demo-' + Date.now(),
         name,
         email,
         role: role === 'admin' ? 'admin' : 'student',
         studentId: 'CP-' + Math.floor(100000 + Math.random() * 900000),
         department: department || 'Computer Science & Engineering',
         year: year || 1,
+        semester: 1,
         cgpa: 3.85,
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+        bio: 'CampusOS Explorer',
       };
       const token = generateToken(newUser);
       return res.status(201).json({
@@ -148,6 +156,7 @@ export const login = async (req, res) => {
         message: `Welcome back, ${user.name}!`,
         token,
         user: {
+          _id: user._id,
           id: user._id,
           name: user.name,
           email: user.email,
@@ -155,8 +164,10 @@ export const login = async (req, res) => {
           studentId: user.studentId,
           department: user.department,
           year: user.year,
+          semester: user.semester,
           cgpa: user.cgpa,
           avatar: user.avatar,
+          bio: user.bio,
         },
       });
     } else {
@@ -187,9 +198,12 @@ export const login = async (req, res) => {
 // Get current user profile
 export const getMe = async (req, res) => {
   try {
+    const userObj = req.user.toObject ? req.user.toObject() : req.user;
+    if (userObj.password) delete userObj.password;
+    if (userObj._id && !userObj.id) userObj.id = userObj._id.toString();
     return res.json({
       success: true,
-      user: req.user,
+      user: userObj,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -208,7 +222,10 @@ export const updateProfile = async (req, res) => {
         if (department) user.department = department;
         if (avatar) user.avatar = avatar;
         await user.save();
-        return res.json({ success: true, message: 'Profile updated successfully', user });
+        const updated = user.toObject();
+        delete updated.password;
+        updated.id = updated._id.toString();
+        return res.json({ success: true, message: 'Profile updated successfully', user: updated });
       }
     }
     return res.json({

@@ -1,4 +1,5 @@
-import jwt from 'jsonwebtoken';
+﻿import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { getDBStatus } from '../config/db.js';
 
@@ -21,30 +22,28 @@ export const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // If DB is connected, fetch fresh user record from Mongo
-    if (getDBStatus()) {
+    // If DB is connected and decoded ID is a valid ObjectId, fetch fresh record
+    if (getDBStatus() && decoded.id && mongoose.Types.ObjectId.isValid(decoded.id)) {
       const user = await User.findById(decoded.id).select('-password');
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'User belonging to this token no longer exists.',
-        });
+      if (user) {
+        req.user = user;
+        return next();
       }
-      req.user = user;
-    } else {
-      // Mock/demo user context when running without DB setup
-      req.user = {
-        _id: decoded.id || 'demo-user-id',
-        name: decoded.name || 'Alex Chen',
-        email: decoded.email || 'alex@campusos.edu',
-        role: decoded.role || 'student',
-        studentId: decoded.studentId || 'CP-892144',
-        department: 'Computer Science & Engineering',
-        year: 3,
-        semester: 5,
-        cgpa: 3.89,
-      };
     }
+
+    // Fallback if DB is disconnected or demo/mock user session
+    req.user = {
+      _id: decoded.id || '507f1f77bcf86cd799439011',
+      id: decoded.id || '507f1f77bcf86cd799439011',
+      name: decoded.name || 'Alex Chen',
+      email: decoded.email || 'alex@campusos.edu',
+      role: decoded.role || 'student',
+      studentId: decoded.studentId || 'CP-892144',
+      department: 'Computer Science & Engineering',
+      year: 3,
+      semester: 5,
+      cgpa: 3.89,
+    };
 
     next();
   } catch (error) {

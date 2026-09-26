@@ -1,21 +1,30 @@
 ﻿import axios from 'axios';
 
 // Dynamically determine the base URL so it works seamlessly in localhost AND live deployment
-const getBaseURL = () => {
-  // If explicitly configured via Vite env
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+export const getBaseURL = () => {
+  // 1. If explicitly configured via Vite env
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.endsWith('/api')) {
+      cleanUrl = `${cleanUrl}/api`;
+    }
+    return cleanUrl;
   }
-  // When running on live deployment (Vercel, custom domain, etc.)
+
+  // 2. When running on live deployment (Vercel, custom domain, etc.)
   if (
     typeof window !== 'undefined' &&
     window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1'
+    window.location.hostname !== '127.0.0.1' &&
+    !window.location.hostname.startsWith('192.168.') &&
+    !window.location.hostname.startsWith('10.')
   ) {
     return 'https://uni-sync.onrender.com/api';
   }
-  // Local development default (relies on Vite dev proxy or local backend)
-  return '/api';
+
+  // 3. Local development default (relies on local Express backend on port 5000)
+  return 'http://localhost:5000/api';
 };
 
 const API = axios.create({

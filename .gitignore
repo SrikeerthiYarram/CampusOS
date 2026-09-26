@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 */node_modules/
 .pnp
@@ -6,15 +6,18 @@ node_modules/
 
 # Environment variables - CRITICAL SECURITY (never commit secrets)
 .env
-.env.*
+.env.local
 *.env
 server/.env
 server/.env.*
 client/.env
-client/.env.*
+client/.env.local
+client/.env.*.local
 !.env.example
 !server/.env.example
 !client/.env.example
+!client/.env.production
+!client/.env.development
 
 # Build outputs
 dist/

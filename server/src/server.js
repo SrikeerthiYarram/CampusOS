@@ -121,7 +121,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // System Health & Diagnostics Check
-app.get('/api/health', (req, res) => {
+const healthCheckHandler = (req, res) => {
   res.json({
     status: 'ONLINE',
     system: 'CampusOS Kernel v2.4.0',
@@ -133,7 +133,10 @@ app.get('/api/health', (req, res) => {
     uptime: Math.floor(process.uptime()) + ' seconds',
     environment: process.env.NODE_ENV || 'development',
   });
-});
+};
+
+app.get('/health', healthCheckHandler);
+app.get('/api/health', healthCheckHandler);
 
 // Mount Module Routes
 app.use('/api/auth', authRoutes);

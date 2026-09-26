@@ -137,6 +137,13 @@ const healthCheckHandler = (req, res) => {
 
 app.get('/health', healthCheckHandler);
 app.get('/api/health', healthCheckHandler);
+// Root Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'UniSync Backend is running!'
+  });
+});
 
 // Mount Module Routes
 app.use('/api/auth', authRoutes);
